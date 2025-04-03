@@ -1,0 +1,19 @@
+body {
+  height: 100%;
+  width: 100%;
+  max-width: var(--max-width-page);
+  margin: 0 auto;
+}
+
+.container {
+  height: 100%;
+  width: 100%;
+  max-width: var(--max-width-container);
+  padding: 0 var(--pd-container);
+  margin: 0 auto;
+}
+
+.header {
+  height: var(--header-height);
+  margin: 0 auto;
+}

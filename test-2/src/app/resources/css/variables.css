@@ -1,0 +1,6 @@
+:root {
+  --max-width-page: 1440px;
+  --pd-container: 20px;
+  --max-width-container: calc(1200px + var(--pd-container) * 2);
+  --header-height: 80px;
+}
