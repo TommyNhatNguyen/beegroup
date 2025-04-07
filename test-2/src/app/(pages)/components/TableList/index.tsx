@@ -75,8 +75,8 @@ const data: TUser[] = Array.from({ length: 100 }, (_, i) => {
   const name = `${names[i % 10]} ${lastNames[i % 10]}`;
   const balance = Math.floor(Math.random() * 10000);
   const email = `${name.toLowerCase().replace(" ", ".")}${i + 1}@example.com`;
-  const registerAt = new Date(2024, 0, i + 1); // Starting from January 1, 2024
-  const active = Math.random() > 0.3; // 70% chance of being active
+  const registerAt = new Date(2025, 0, i + 1);
+  const active = Math.random() > 0.3;
 
   return {
     id,
@@ -87,11 +87,17 @@ const data: TUser[] = Array.from({ length: 100 }, (_, i) => {
     active,
   };
 });
+//*************************** */
+// MY CODE WITH CURSOR SUPPORTED
+//*************************** */
 
-// My code with Cursor supported
+// I. Define columns for the table using tanstack/react-table.
+// Each column will have column.toggleSorting(column.getIsSorted() === "asc") to sort the column.
 export const columns: ColumnDef<TUser>[] = [
+  // 1. Checkbox column: Define select column
   {
     id: "select",
+    // 1.1 Allow to select all rows with table.toggleAllPageRowsSelected(!!value)
     header: ({ table }) => (
       <Checkbox
         checked={
@@ -102,6 +108,7 @@ export const columns: ColumnDef<TUser>[] = [
         aria-label="Select all"
       />
     ),
+    // 1.2 Allow to select a single row with row.toggleSelected(!!value)
     cell: ({ row }) => (
       <Checkbox
         checked={row.getIsSelected()}
@@ -112,6 +119,7 @@ export const columns: ColumnDef<TUser>[] = [
     enableSorting: false,
     enableHiding: false,
   },
+  // 2. Name column: Define name column
   {
     accessorKey: "name",
     header: ({ column }) => {
@@ -126,6 +134,7 @@ export const columns: ColumnDef<TUser>[] = [
       );
     },
   },
+  // 3. Email column: Define email column
   {
     accessorKey: "email",
     header: ({ column }) => {
@@ -139,6 +148,7 @@ export const columns: ColumnDef<TUser>[] = [
         </Button>
       );
     },
+    // 3.1 Allow to click on the email to open the email client
     cell: ({ row }) => (
       <a
         href={`mailto:${row.getValue("email")}`}
@@ -148,6 +158,7 @@ export const columns: ColumnDef<TUser>[] = [
       </a>
     ),
   },
+  // 4. Balance column: Define balance column
   {
     accessorKey: "balance",
     header: ({ column }) => {
@@ -161,6 +172,7 @@ export const columns: ColumnDef<TUser>[] = [
         </Button>
       );
     },
+    // 4.1 Format the balance to USD
     cell: ({ row }) => {
       const balance = parseFloat(row.getValue("balance"));
       const formatted = new Intl.NumberFormat("en-US", {
@@ -170,6 +182,7 @@ export const columns: ColumnDef<TUser>[] = [
       return <div className="text-right font-medium">{formatted}</div>;
     },
   },
+  // 5. Registration Date: Define registration date column
   {
     accessorKey: "registerAt",
     header: ({ column }) => {
@@ -183,6 +196,7 @@ export const columns: ColumnDef<TUser>[] = [
         </Button>
       );
     },
+    // 5.1 Format to show correct date and time
     cell: ({ row }) => {
       const date = row.getValue("registerAt") as Date;
       return (
@@ -195,6 +209,7 @@ export const columns: ColumnDef<TUser>[] = [
       );
     },
   },
+  // 6. Status column: Define status column
   {
     accessorKey: "active",
     header: "Status",
@@ -212,6 +227,7 @@ export const columns: ColumnDef<TUser>[] = [
       );
     },
   },
+  // 7. Actions column: Define actions column (Notice: No handling for actions yet)
   {
     id: "actions",
     enableHiding: false,
@@ -235,7 +251,9 @@ export const columns: ColumnDef<TUser>[] = [
   },
 ];
 
+// II. Define the table component
 export function TableList() {
+  // 1. Define states for sorting, filtering, toggle infinite scroll and pagination mode, row selection
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
@@ -256,7 +274,8 @@ export function TableList() {
   const [pageSize, setPageSize] = React.useState(10);
   const [hasAppliedFilters, setHasAppliedFilters] = React.useState(false);
 
-  // Apply custom filters to the data
+  // 2. FilterdData is used for rendering the data table.
+  // I apply React.useMemo to avoid unnecessary re-renders, only re-render when the filters are applied.
   const filteredData = React.useMemo(() => {
     // If no filters have been applied yet, return all data
     if (!hasAppliedFilters) {
@@ -264,7 +283,7 @@ export function TableList() {
     }
 
     return data.filter((user) => {
-      // Balance filter
+      // Balance filter: Filter price in range
       if (
         filters.balanceMin !== undefined &&
         user.balance < filters.balanceMin
@@ -278,7 +297,7 @@ export function TableList() {
         return false;
       }
 
-      // Registration date range filter
+      // Registration date range filter: Filter date in range
       if (filters.registrationDateRange) {
         const userDate = new Date(user.registerAt);
         if (
@@ -296,7 +315,7 @@ export function TableList() {
         }
       }
 
-      // Status filter
+      // Status filter: Filter by single status
       if (filters.status && filters.status !== "all") {
         if (filters.status === "active" && !user.active) {
           return false;
@@ -310,6 +329,7 @@ export function TableList() {
     });
   }, [data, filters, hasAppliedFilters]);
 
+  // 3. Handle filter function for price, date and status
   const handleFilterChange = (newFilters: {
     balanceMin?: number;
     balanceMax?: number;
@@ -321,14 +341,19 @@ export function TableList() {
     setHasAppliedFilters(true);
   };
 
+  // 4. Handle view mode change for infinite scroll and pagination mode
   const handleViewModeChange = (newIsInfiniteScroll: boolean) => {
     setIsInfiniteScroll(newIsInfiniteScroll);
     setPageIndex(0);
   };
 
+  // 5. Define the table using tanstack/react-table
+  // I use https://tanstack.com/table/latest to help with the setup
   const table = useReactTable({
+    // 5.1 Define the data and columns
     data: filteredData,
     columns,
+    // 5.2 Define the sorting, filtering, pagination and row selection
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -339,6 +364,7 @@ export function TableList() {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    // 5.3 Handle pagination change
     onPaginationChange: (updater) => {
       if (isInfiniteScroll) return;
       if (typeof updater === "function") {
@@ -350,6 +376,7 @@ export function TableList() {
         setPageSize(updater.pageSize);
       }
     },
+    // 5.4 Define the state for sorting, filtering, pagination and row selection to make table re-render when the state changes
     state: {
       sorting,
       columnFilters,
@@ -363,7 +390,9 @@ export function TableList() {
     enableSorting: true,
   });
 
+  // 6. Custom render table rows
   const renderTableRows = () => {
+    // 6.1 If no data, return no results
     if (!filteredData || filteredData.length === 0) {
       return (
         <TableRow>
@@ -374,11 +403,12 @@ export function TableList() {
       );
     }
 
-    // Get sorted and filtered data
+    // 6.2 Get sorted and filtered data based on the view mode
     const sortedData = isInfiniteScroll
       ? table.getSortedRowModel().rows.map((row) => row.original)
       : table.getRowModel().rows.map((row) => row.original);
 
+    // 6.3 Render the table rows
     return sortedData.map((rowData) => {
       const row = table
         .getRowModel()
@@ -461,6 +491,7 @@ export function TableList() {
     });
   };
 
+  // 7. Render the pagination buttons
   const renderPaginationButtons = () => {
     if (isInfiniteScroll) return null;
 
@@ -520,13 +551,16 @@ export function TableList() {
     );
   };
 
+  // 8. Render the table
   return (
     <div className="w-full">
+      {/* 8.1 Render the filter header */}
       <FilterHeader
         onFilterChange={handleFilterChange}
         onViewModeChange={handleViewModeChange}
         isInfiniteScroll={isInfiniteScroll}
       />
+      {/* 8.2 Render table */}
       <div
         className={cn(
           "rounded-md border",
@@ -534,6 +568,7 @@ export function TableList() {
         )}
       >
         <Table>
+          {/* 8.2.1 Render the table header */}
           <TableHeader
             className={
               isInfiniteScroll ? "bg-background sticky top-0 z-10" : ""
@@ -552,25 +587,29 @@ export function TableList() {
                   aria-label="Select all"
                 />
               </TableHead>
-              {table.getHeaderGroups().map((headerGroup) =>
-                headerGroup.headers
-                  .filter((header) => header.id !== "select") // Skip the select column as we've added it manually
-                  .map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  )),
-              )}
+              {table
+                .getHeaderGroups()
+                .map((headerGroup) =>
+                  headerGroup.headers
+                    .filter((header) => header.id !== "select")
+                    .map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
+                    )),
+                )}
             </TableRow>
           </TableHeader>
+          {/* 8.2.2 Render the table body */}
           <TableBody>{renderTableRows()}</TableBody>
         </Table>
       </div>
+      {/* 8.3 Render the pagination buttons */}
       {isInfiniteScroll ? (
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center gap-4">

@@ -18,11 +18,9 @@ const Header = (props: Props) => {
     <header className="header">
       <div className="container">
         <div className="flex h-full w-full items-center justify-between gap-4">
-          {/* Logo bên trái */}
           <a href="/" className={cn("logo h-[36px] w-[36px]")}>
             <Table width={36} height={36} />
           </a>
-          {/* Toggle theme bên phải */}
           <Button
             variant="outline"
             size="icon"
